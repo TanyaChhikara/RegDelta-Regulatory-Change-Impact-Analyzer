@@ -21,11 +21,18 @@ from dataclasses import dataclass
 @dataclass
 class EvalCase:
     query: str
-    # None means this is a negative case: no document in the corpus should
-    # be a strong match, and we're checking whether retrieval (correctly)
-    # returns a weak/low-confidence result rather than a false positive.
+    # None means no specific reference number is being scored against.
+    # See is_true_negative for what that actually means.
     expected_reference_number: str | None
     description: str = ""
+    # Only meaningful when expected_reference_number is None. True means
+    # this is a genuine negative case: no relevant document should exist in
+    # the corpus, and a confident-looking match would be a real false
+    # positive. False means a relevant document likely exists but we don't
+    # have a stable identifier to score rank against (e.g. a press release
+    # with no RBI/20XX-XX/NNN-style reference number) -- reported for
+    # manual review, not flagged as a risk.
+    is_true_negative: bool = False
 
 
 EVAL_CASES: list[EvalCase] = [
@@ -76,16 +83,21 @@ EVAL_CASES: list[EvalCase] = [
     EvalCase(
         query="state government securities auction results",
         expected_reference_number=None,
-        description="Should match an SDL auction press release by topic, but we "
-        "haven't pinned an exact reference number for it -- reported as informational, "
-        "not scored against a specific expected document",
+        is_true_negative=False,
+        description="A relevant document genuinely exists (an SDL auction press release) "
+        "but press releases don't carry a stable RBI/20XX-XX/NNN-style reference number, "
+        "so this isn't scored against a specific expected document. Confirmed via a real "
+        "run: correctly matched 'Auction of State Government Securities' at score 0.783 -- "
+        "reported for manual review, not flagged as a false-positive risk.",
     ),
     EvalCase(
         query="fraud prevention rules for banks",
         expected_reference_number=None,
-        description="Negative case: the corpus (as of the last confirmed fetch) has no "
-        "fraud-related document. Correct behavior is a low top score, not a confident "
-        "match on an unrelated document -- this is the exact failure mode found "
-        "manually before this eval script existed.",
+        is_true_negative=True,
+        description="Genuine negative case: the corpus (as of the last confirmed fetch) has "
+        "no fraud-related document. Correct behavior is a low top score, not a confident "
+        "match on an unrelated document. Confirmed via a real run: incorrectly matched a "
+        "Weekly Statistical Supplement bulletin at score 0.615 -- exactly the false-positive "
+        "risk this case exists to catch.",
     ),
 ]

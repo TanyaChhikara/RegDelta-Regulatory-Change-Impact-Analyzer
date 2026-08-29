@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 from src.evaluation.eval_cases import EvalCase
-from src.evaluation.eval_retrieval import evaluate_case, run_evaluation
+from src.evaluation.eval_retrieval import evaluate_case, print_report, run_evaluation
 from src.retrieval.retrieve import RetrievalResult
 
 
@@ -51,7 +51,7 @@ def test_evaluate_case_not_found_gives_none_rank_and_zero_reciprocal_rank():
 
 
 def test_evaluate_case_negative_case_reports_top_score_without_rank():
-    case = EvalCase(query="q", expected_reference_number=None)
+    case = EvalCase(query="q", expected_reference_number=None, is_true_negative=True)
     retriever = MagicMock()
     retriever.retrieve.return_value = [_make_result("RBI/1", 0.65)]
 
@@ -60,6 +60,24 @@ def test_evaluate_case_negative_case_reports_top_score_without_rank():
     assert result.rank is None
     assert result.reciprocal_rank is None
     assert result.top_score == 0.65
+
+
+def test_evaluate_case_informational_case_also_reports_top_score_without_rank():
+    """An informational case (a relevant document likely exists, but there's
+    no stable reference number to score against) is structurally identical
+    to a true negative case at the evaluate_case level -- the distinction
+    only matters for reporting/flagging, tested separately in
+    test_print_report behavior via the is_true_negative field itself.
+    """
+    case = EvalCase(query="q", expected_reference_number=None, is_true_negative=False)
+    retriever = MagicMock()
+    retriever.retrieve.return_value = [_make_result("RBI/1", 0.78)]
+
+    result = evaluate_case(retriever, case, top_k=5)
+
+    assert result.rank is None
+    assert result.reciprocal_rank is None
+    assert result.top_score == 0.78
 
 
 def test_evaluate_case_empty_results_handled_gracefully():
@@ -125,3 +143,34 @@ def test_run_evaluation_handles_empty_case_list():
 
     assert report["recall_at_k"] is None
     assert report["mrr"] is None
+
+
+def test_print_report_flags_true_negative_with_high_score(capsys):
+    retriever = MagicMock()
+    retriever.retrieve.return_value = [_make_result("RBI/1", 0.9)]
+    case = EvalCase(query="fraud query", expected_reference_number=None, is_true_negative=True)
+
+    report = run_evaluation(retriever, [case], top_k=5)
+    print_report(report)
+
+    captured = capsys.readouterr()
+    assert "possible false-positive risk" in captured.out
+    assert "Negative case" in captured.out
+
+
+def test_print_report_does_not_flag_informational_case_with_high_score(capsys):
+    """Regression test: an informational case (real match exists, no stable
+    id to score against) must NOT be flagged as a false-positive risk just
+    because its score is high -- a high score there means retrieval worked
+    correctly, the opposite of a true negative case's high score.
+    """
+    retriever = MagicMock()
+    retriever.retrieve.return_value = [_make_result("RBI/1", 0.9)]
+    case = EvalCase(query="auction query", expected_reference_number=None, is_true_negative=False)
+
+    report = run_evaluation(retriever, [case], top_k=5)
+    print_report(report)
+
+    captured = capsys.readouterr()
+    assert "possible false-positive risk" not in captured.out
+    assert "Informational (unscored)" in captured.out

@@ -20,11 +20,16 @@ from pathlib import Path
 from src.evaluation.eval_cases import EVAL_CASES, EvalCase
 from src.retrieval.retrieve import RetrievalResult, Retriever
 
-# A negative-case top score at or above this is flagged as a possible
-# false-positive risk -- confident-looking but likely irrelevant. This is
-# not (yet) an enforced threshold anywhere in retrieve.py; it's a reporting
-# aid for deciding what that threshold should eventually be, once there's
-# enough data across more queries to justify a specific number.
+# A true-negative-case top score at or above this is flagged as a possible
+# false-positive risk -- confident-looking but likely irrelevant.
+#
+# This is not an enforced filtering threshold anywhere in retrieve.py, and
+# 0.6 is still a rough starting point, not a validated cutoff -- it's based
+# on exactly one clean true-negative data point so far (a real run scored
+# a genuine false positive at 0.615, while a genuine correct match on a
+# different query scored 0.783). That gap is a good sign the score does
+# carry real signal, but one data point on the "wrong" side isn't enough to
+# lock in a specific number. Revisit as more true-negative cases accumulate.
 FALSE_POSITIVE_RISK_SCORE = 0.6
 
 
@@ -79,11 +84,16 @@ def print_report(report: dict) -> None:
 
         if cr.case.expected_reference_number is None:
             flag = ""
-            if cr.top_score is not None and cr.top_score >= FALSE_POSITIVE_RISK_SCORE:
+            if (
+                cr.case.is_true_negative
+                and cr.top_score is not None
+                and cr.top_score >= FALSE_POSITIVE_RISK_SCORE
+            ):
                 flag = "  <-- possible false-positive risk (high score, no expected match)"
+            label = "Negative case" if cr.case.is_true_negative else "Informational (unscored)"
             top_title = cr.results[0].title if cr.results else "(no results)"
             score_str = f"{cr.top_score:.3f}" if cr.top_score is not None else "N/A"
-            print(f"    Negative case. Top result: {top_title}  score={score_str}{flag}")
+            print(f"    {label}. Top result: {top_title}  score={score_str}{flag}")
         else:
             status = f"FOUND at rank {cr.rank}" if cr.rank else "NOT FOUND"
             print(f"    Expected: {cr.case.expected_reference_number}  ->  {status}")
