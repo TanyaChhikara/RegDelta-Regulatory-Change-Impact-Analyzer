@@ -12,3 +12,4 @@ supersedes the old one.
 | [003](003-embedding-provider-choice.md) | Embedding provider choice (OpenAI default, Voyage AI planned) | Accepted |
 | [004](004-switch-to-gemini-embeddings.md) | Switch default embedding provider to Gemini | Accepted |
 | [005](005-llm-generation-provider.md) | LLM generation provider for gap analysis | Accepted |
+| [006](006-deterministic-verification-not-agent.md) | Deterministic evidence verification instead of a verification agent | Accepted |

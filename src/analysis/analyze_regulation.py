@@ -17,6 +17,7 @@ from pathlib import Path
 
 from src.analysis.gap_analysis import analyze_gap
 from src.analysis.policy_mapper import find_candidate_policies
+from src.analysis.verification import verify_gap_analysis
 
 
 def load_regulation_by_reference(
@@ -55,6 +56,7 @@ def print_impact_report(regulation: dict, candidate_score_threshold: float, top_
             continue
 
         result = analyze_gap(regulation["clean_text"], match.text)
+        verification = verify_gap_analysis(result, regulation["clean_text"], match.text)
 
         print(f"  Affected: {result.is_affected}  (confidence: {result.confidence})")
         print(f"  Reasoning: {result.reasoning}")
@@ -62,6 +64,14 @@ def print_impact_report(regulation: dict, candidate_score_threshold: float, top_
             print(f"  Old requirement (policy): {result.old_requirement}")
             print(f"  New requirement (regulation): {result.new_requirement}")
             print(f"  Recommended action: {result.recommended_action}")
+
+            if not verification.fully_verified:
+                print(
+                    "  \u26a0 UNVERIFIED: claimed evidence not closely found in its source "
+                    "text -- possible hallucination. "
+                    f"(old_requirement match={verification.old_requirement_score:.2f}, "
+                    f"new_requirement match={verification.new_requirement_score:.2f})"
+                )
 
     print(f"\n{'=' * 80}\n")
 
