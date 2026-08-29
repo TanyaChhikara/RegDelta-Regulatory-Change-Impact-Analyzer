@@ -13,6 +13,7 @@ dependencies = [
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",
     "lxml>=5.0.0",
+    "feedparser>=6.0.0",  # lenient RSS/Atom parsing (handles RBI feed's BOM, encoding quirks)
 
     # Data handling
     "pandas>=2.1.0",
@@ -35,7 +36,10 @@ dev = [
 
 [build-system]
 requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
 
 [tool.ruff]
 line-length = 100
