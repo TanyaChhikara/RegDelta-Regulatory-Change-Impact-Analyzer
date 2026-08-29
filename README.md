@@ -51,10 +51,10 @@ Given a new RBI regulatory update, RegDelta:
 ## Project Status
 
 - [x] Project structure and specification
-- [ ] RBI data ingestion
-- [ ] Document preprocessing
-- [ ] EDA on regulatory corpus
-- [ ] Chunking and embedding
+- [x] RBI data ingestion
+- [x] Document preprocessing
+- [x] EDA on regulatory corpus
+- [x] Chunking and embedding
 - [ ] Basic retrieval pipeline
 - [ ] Synthetic policy generation
 - [ ] LLM-powered impact analysis
