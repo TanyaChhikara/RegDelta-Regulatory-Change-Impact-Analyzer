@@ -10,3 +10,4 @@ supersedes the old one.
 | [001](001-rbi-as-data-source.md) | Use RBI as the primary regulatory data source | Accepted |
 | [002](002-numpy-vector-store-before-qdrant.md) | Custom NumPy vector store before Qdrant | Accepted |
 | [003](003-embedding-provider-choice.md) | Embedding provider choice (OpenAI default, Voyage AI planned) | Accepted |
+| [004](004-switch-to-gemini-embeddings.md) | Switch default embedding provider to Gemini | Accepted |

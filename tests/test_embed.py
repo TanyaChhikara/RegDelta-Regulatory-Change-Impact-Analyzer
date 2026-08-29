@@ -75,6 +75,42 @@ def test_embed_texts_openai_provider_calls_api_and_respects_response_index(monke
     )
 
 
+def test_embed_texts_gemini_provider_calls_api_with_document_task_type(monkeypatch):
+    """Mocks the Gemini client entirely -- no real API call, no API key needed."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+
+    mock_embedding_0 = MagicMock(values=[0.1, 0.2])
+    mock_embedding_1 = MagicMock(values=[0.3, 0.4])
+    mock_response = MagicMock(embeddings=[mock_embedding_0, mock_embedding_1])
+
+    mock_client = MagicMock()
+    mock_client.models.embed_content.return_value = mock_response
+
+    with patch("google.genai.Client", return_value=mock_client):
+        result = embed_texts(["first text", "second text"], is_query=False)
+
+    assert result == [[0.1, 0.2], [0.3, 0.4]]
+    _, kwargs = mock_client.models.embed_content.call_args
+    assert kwargs["model"] == "gemini-embedding-001"
+    assert kwargs["contents"] == ["first text", "second text"]
+    assert kwargs["config"].task_type == "RETRIEVAL_DOCUMENT"
+
+
+def test_embed_texts_gemini_provider_uses_query_task_type_for_queries(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+
+    mock_response = MagicMock(embeddings=[MagicMock(values=[0.5, 0.6])])
+    mock_client = MagicMock()
+    mock_client.models.embed_content.return_value = mock_response
+
+    with patch("google.genai.Client", return_value=mock_client):
+        embed_texts(["a search query"], is_query=True)
+
+    _, kwargs = mock_client.models.embed_content.call_args
+    assert kwargs["config"].task_type == "RETRIEVAL_QUERY"
+
+
 def test_embed_chunks_builds_store_with_correct_metadata(tmp_path, monkeypatch):
     monkeypatch.setenv("EMBEDDING_PROVIDER", "fake")
 

@@ -16,6 +16,7 @@ dependencies = [
     "feedparser>=6.0.0",  # lenient RSS/Atom parsing (handles RBI feed's BOM, encoding quirks)
     "tiktoken>=0.5.0",  # real token counting matching OpenAI embedding models' tokenizer
     "openai>=1.0.0",  # embeddings API client
+    "google-genai>=0.3.0",  # Gemini embeddings API client (default provider)
 
     # Data handling
     "pandas>=2.1.0",

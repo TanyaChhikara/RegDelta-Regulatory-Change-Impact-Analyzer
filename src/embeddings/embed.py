@@ -1,16 +1,22 @@
 """
 Embedding generation: convert chunk text into vectors via an embedding API.
 
-Provider is pluggable (EMBEDDING_PROVIDER in .env). Default is OpenAI's
-text-embedding-3-small -- cheap ($0.02/1M tokens) and the standard starting
-point for RAG prototypes. Anthropic doesn't offer its own embeddings API, so
-any Claude-based RAG stack pairs with an external provider regardless; a
-stronger alternative worth testing later is Voyage AI (see
-docs/adr/003-embedding-provider-choice.md for the comparison), which recent
-benchmarks show performing particularly well on technical/legal text -- a
-reasonable fit for regulatory documents. Swapping providers is a config
-change, not a rewrite, since everything downstream only depends on
-embed_texts() returning a list of vectors.
+Provider is pluggable (EMBEDDING_PROVIDER in .env): "gemini" (default),
+"openai", or "fake" (dry runs, no API call).
+
+Default is Google's gemini-embedding-001 -- see
+docs/adr/004-switch-to-gemini-embeddings.md for why: OpenAI billing hit a
+real payment obstacle (cards declined, consistent with Indian banks
+disabling international transactions by default), and Gemini's free tier
+requires no credit card at all. This also isn't just a workaround --
+gemini-embedding-001 supports task-type-aware embeddings (RETRIEVAL_DOCUMENT
+vs RETRIEVAL_QUERY), which is a genuine retrieval-quality improvement over
+OpenAI's symmetric embeddings, since a query and the document that answers
+it are often phrased very differently. OpenAI's text-embedding-3-small
+remains supported (see docs/adr/003-embedding-provider-choice.md) and Voyage
+AI is a planned addition for a future retrieval-quality experiment.
+Swapping providers is a config change, not a rewrite, since everything
+downstream only depends on embed_texts() returning a list of vectors.
 
 A "fake" provider is also available (EMBEDDING_PROVIDER=fake) for testing
 the pipeline end-to-end without spending API credits: it produces
@@ -63,12 +69,29 @@ def _embed_batch_openai(texts: list[str], model: str) -> list[list[float]]:
     return [item.embedding for item in ordered]
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Embed a list of texts, batching requests to stay within API limits."""
+def _embed_batch_gemini(texts: list[str], model: str, is_query: bool) -> list[list[float]]:
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client()  # reads GEMINI_API_KEY from the environment
+    task_type = "RETRIEVAL_QUERY" if is_query else "RETRIEVAL_DOCUMENT"
+    response = client.models.embed_content(
+        model=model, contents=texts, config=types.EmbedContentConfig(task_type=task_type)
+    )
+    return [embedding.values for embedding in response.embeddings]
+
+
+def embed_texts(texts: list[str], is_query: bool = False) -> list[list[float]]:
+    """Embed a list of texts, batching requests to stay within API limits.
+
+    is_query distinguishes search queries from indexed documents. Only
+    Gemini uses this (RETRIEVAL_QUERY vs RETRIEVAL_DOCUMENT task types) --
+    OpenAI and the fake provider have no task-type concept and ignore it.
+    """
     if not texts:
         return []
 
-    provider = os.getenv("EMBEDDING_PROVIDER", "openai")
+    provider = os.getenv("EMBEDDING_PROVIDER", "gemini")
     batch_size = DEFAULT_BATCH_SIZE
 
     all_embeddings: list[list[float]] = []
@@ -80,8 +103,13 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         elif provider == "openai":
             model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
             batch_embeddings = _embed_batch_openai(batch, model)
+        elif provider == "gemini":
+            model = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+            batch_embeddings = _embed_batch_gemini(batch, model, is_query)
         else:
-            raise ValueError(f"Unknown EMBEDDING_PROVIDER '{provider}'. Use 'openai' or 'fake'.")
+            raise ValueError(
+                f"Unknown EMBEDDING_PROVIDER '{provider}'. Use 'gemini', 'openai', or 'fake'."
+            )
 
         all_embeddings.extend(batch_embeddings)
         logger.info(
