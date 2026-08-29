@@ -5,10 +5,9 @@
 
 ## Context
 
-The original project specification (`project.md`) was written around US financial
-regulators — the Federal Register API, eCFR, and SEC EDGAR. This project instead
-requires real, publicly available data from an **Indian** regulatory/government
-organization, evaluated on:
+RegDelta requires real, publicly available regulatory data from an **Indian**
+regulatory/government organization. Several Indian regulatory bodies were
+considered as the primary data source, evaluated on:
 
 1. Availability of public data
 2. Quality of documentation
@@ -76,9 +75,8 @@ and full-text HTML pages are publicly accessible with no API key or authenticati
    problems entirely for the MVP.
 
 6. **Real-world weight.** Every scheduled bank, NBFC, and payments company in India
-   must comply with RBI directions — this is the most consequential Indian financial
-   regulator for a compliance use case, comparable in weight to the Fed/OCC in the
-   original US-centric spec.
+   must comply with RBI directions — this makes RBI the most consequential regulator
+   for an Indian financial-compliance use case.
 
 ## Trade-offs / What We're Giving Up
 
@@ -89,8 +87,7 @@ and full-text HTML pages are publicly accessible with no API key or authenticati
 - **Not investigating SEBI in this project**, even though it would also be a strong
   choice, particularly for capital-markets-flavored compliance policies. We may
   revisit this as a stretch goal (e.g., cross-regulatory conflict detection between
-  RBI and SEBI, mirroring the original spec's "conflicts with other regulators" idea)
-  once the MVP is solid.
+  RBI and SEBI obligations) once the MVP is solid.
 - **No official bulk-download or archive API**, so historical backfill (for a larger
   corpus in later phases) will require a slower, per-page fetch strategy rather than
   a single bulk export.
@@ -117,5 +114,5 @@ and full-text HTML pages are publicly accessible with no API key or authenticati
 - EDA (M2.5) will need to characterize RBI's specific HTML structure, since we have
   no schema guarantee the way an API would provide.
 - The synthetic policy corpus (M7) will be organized around RBI's regulated-entity
-  categories and topic areas (KYC/AML, lending, capital adequacy, digital payments,
-  NBFC regulation) rather than the SEC/FINRA-flavored domains in the original spec.
+  categories and topic areas: KYC/AML, lending, capital adequacy, digital payments,
+  and NBFC regulation.
