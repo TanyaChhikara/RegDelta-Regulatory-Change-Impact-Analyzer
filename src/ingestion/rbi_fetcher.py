@@ -53,6 +53,17 @@ MIN_INTERVAL_SECONDS = 1.0 / RATE_LIMIT if RATE_LIMIT > 0 else 0.5
 # Matches RBI's standard reference number format, e.g. "RBI/2026-27/248"
 REFERENCE_NUMBER_PATTERN = re.compile(r"RBI/20\d{2}-\d{2}/\d+")
 
+# Matches links to Master Directions, e.g.
+#   href="https://www.rbi.org.in/scripts/BS_ViewMasDirections.aspx?id=13003"
+# This is how notifications actually cross-reference other regulations in
+# practice -- via a link to the target's page, with the target's descriptive
+# title as the link text -- not by citing the target's reference number
+# inline. Detecting cross-references therefore requires parsing hrefs from
+# raw_html, not regexing the reference-number pattern against clean_text.
+MASTER_DIRECTION_LINK_PATTERN = re.compile(
+    r"BS_ViewMasDirections\.aspx\?id=(\d+)", re.IGNORECASE
+)
+
 
 @dataclass
 class RBIDocument:
@@ -65,6 +76,7 @@ class RBIDocument:
     source_url: str
     raw_html: str
     clean_text: str
+    master_direction_refs: list[str]  # linked BS_ViewMasDirections.aspx?id=... targets
     fetched_at: str
     document_id: str  # stable hash for dedup across repeated fetches
 
@@ -115,6 +127,21 @@ def extract_reference_number(text: str) -> str | None:
     return match.group(0) if match else None
 
 
+def extract_master_direction_refs(raw_html: str) -> list[str]:
+    """Extract Master Direction ids this document links to (its real cross-references).
+
+    Deduplicated but order-preserving, since a notification can link the same
+    Master Direction more than once (e.g. once in the opening paragraph, again
+    in a later "these Directions modify..." paragraph).
+    """
+    ids = MASTER_DIRECTION_LINK_PATTERN.findall(raw_html)
+    seen: list[str] = []
+    for doc_id in ids:
+        if doc_id not in seen:
+            seen.append(doc_id)
+    return seen
+
+
 def make_document_id(source_url: str, title: str) -> str:
     """Stable identifier for dedup across repeated fetches of the same feed."""
     key = f"{source_url}|{title}"
@@ -136,6 +163,7 @@ def parse_entry(entry: dict, feed_key: str) -> RBIDocument:
         source_url=source_url,
         raw_html=raw_html,
         clean_text=clean_text,
+        master_direction_refs=extract_master_direction_refs(raw_html),
         fetched_at=datetime.now(timezone.utc).isoformat(),
         document_id=make_document_id(source_url, title),
     )
@@ -147,11 +175,19 @@ def fetch_documents(feed_key: str) -> list[RBIDocument]:
     return [parse_entry(entry, feed_key) for entry in entries]
 
 
-def save_documents(documents: list[RBIDocument], output_dir: Path) -> Path:
-    """Write documents as JSON Lines (one document per line) to output_dir."""
+def save_documents(documents: list[RBIDocument], output_dir: Path, feed_key: str) -> Path:
+    """Write documents as JSON Lines (one document per line) to output_dir.
+
+    The filename includes `feed_key` specifically to avoid collisions: two
+    feeds fetched back-to-back (e.g. notifications then press_releases) can
+    complete within the same wall-clock second, and this function's
+    second-precision timestamp used to be the *only* thing making filenames
+    unique -- so the second write would silently overwrite the first,
+    destroying an entire feed's worth of fetched data with no error raised.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    output_path = output_dir / f"rbi_fetch_{timestamp}.jsonl"
+    output_path = output_dir / f"rbi_fetch_{feed_key}_{timestamp}.jsonl"
 
     with output_path.open("w", encoding="utf-8") as f:
         for doc in documents:
@@ -181,7 +217,7 @@ def main() -> None:
 
     for feed_key in feed_keys:
         documents = fetch_documents(feed_key)
-        save_documents(documents, output_dir)
+        save_documents(documents, output_dir, feed_key)
         time.sleep(MIN_INTERVAL_SECONDS)  # be polite between feeds
 
 
