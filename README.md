@@ -1,6 +1,6 @@
 # RegDelta — Regulatory Change Impact Analyzer
 
-**A multi-agent RAG system that reads new RBI regulations and identifies which internal compliance policies need to change, why, and how urgently — with citations.**
+**A RAG system that reads new RBI regulations and identifies which internal compliance policies need to change, why, and how urgently — with citations.**
 
 ## The Problem
 
