@@ -1,0 +1,50 @@
+[
+  {
+    "policy_id": "POL-001",
+    "title": "Deposit Interest Rate Policy",
+    "file": "POL-001-deposit-interest-rate-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "relevant",
+    "note": "Directly affected by Interest Rate on Deposits Third Amendment Directions (e.g. RBI/2026-27/244 for Small Finance Banks). Cites pre-amendment relaxation deadline (September 30, 2026) that real notifications amended to August 31, 2026 -- a deliberate, realistic gap."
+  },
+  {
+    "policy_id": "POL-002",
+    "title": "Reserve Requirements & Liquidity Management Policy",
+    "file": "POL-002-reserve-requirements-liquidity-management-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "relevant",
+    "note": "Directly affected by CRR/SLR Fourth Amendment Directions (e.g. RBI/2026-27/239 for Small Finance Banks). Same deliberate stale-date gap as POL-001."
+  },
+  {
+    "policy_id": "POL-003",
+    "title": "NRE/NRO/FCNR(B) Deposit Management Policy",
+    "file": "POL-003-nre-nro-fcnr-deposit-management-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "relevant",
+    "note": "Narrower, clause-level relevance -- references the same relaxation window as POL-001/POL-002. Tests whether future retrieval finds relevance at a finer grain than whole-policy topic matching."
+  },
+  {
+    "policy_id": "POL-004",
+    "title": "KYC and Customer Due Diligence Policy",
+    "file": "POL-004-kyc-customer-due-diligence-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "control",
+    "note": "No KYC-related document currently in the RBI corpus -- correct behavior is no confident match."
+  },
+  {
+    "policy_id": "POL-005",
+    "title": "Fraud Risk Management Policy",
+    "file": "POL-005-fraud-risk-management-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "control",
+    "note": "Mirrors the exact negative case in src/evaluation/eval_cases.py ('fraud prevention rules for banks') -- no fraud-related document currently in the RBI corpus."
+  },
+  {
+    "policy_id": "POL-006",
+    "title": "Priority Sector Lending Policy",
+    "file": "POL-006-priority-sector-lending-policy.md",
+    "entity_type": "Small Finance Bank",
+    "expected_relevance": "control",
+    "note": "No PSL-related document currently in the RBI corpus -- correct behavior is no confident match."
+  }
+]
